@@ -1,3 +1,7 @@
+# This fork
+Added output as csv in format "ip,status" by flag -o
+Usage: -o PATH_TO_FILE
+
 # ping-overseer
 
 This is a mass ping monitoring tool with the following features:
