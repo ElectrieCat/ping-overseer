@@ -18,6 +18,7 @@ import ctypes
 from datetime import datetime
 from datetime import timedelta
 
+import csv
 import nmap
 import jefftadashi_utils as jtu
 
@@ -25,8 +26,9 @@ def main(argv):
 
     print(jtu.color.end + "")
     print("   @@#############################@@") 
-    print("   @@    " + jtu.color.bold + "    ping-overseer    " + jtu.color.end + "    @@") 
-    print("   @@   by JeffTadashi  v0.1.0    @@") 
+    print("   @@    " + jtu.color.bold + "    ping-overseer    " + jtu.color.end + "    @@")
+    print("   @@   by JeffTadashi  v0.1.1    @@")
+    print("   @@ and shitcoded by ElectriCat @@")
     print("   @@#############################@@") 
     print(jtu.color.end + "")
 
@@ -34,6 +36,7 @@ def main(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--input", nargs='+', help="Input simple space-separated IP or CIDR list")
     parser.add_argument("-f", "--file", help="Input a file with IP's. Can be any text-based format.")
+    parser.add_argument("-o", "--output", dest="output", help="Output a csv file with IP's and ping reply status, will query the addresses only once and exit.")
     parser.add_argument("-d", "--delay", type=float, help="Change delay (in seconds) between nmap ping runs. Default is 8 (seconds)")
     parser.add_argument("-t", "--time-nmap", dest="time_nmap", type=int, help="Set NMAP timing template. Valid entries are 1 (Slowest) through 5 (Fastest). 3 is default.")
     args = parser.parse_args()
@@ -77,6 +80,17 @@ def main(argv):
         for i in args.input:
             ping_ip_str = ping_ip_str + " " + i
 
+    if args.output:
+        if os.path.exists(args.output):
+            overwrite = input("File '" + args.output + "' exists.\nOverwrite? (yes/no)\n")
+            if overwrite in ["yes","y"]:
+                pass
+            else:
+                exit("Quitting!")
+            with open(args.output, 'w', newline='') as ofile:
+                writer = csv.writer(ofile)
+                writer.writerow(["ip", "status"])
+    else: args.output = "empty"
     # down-time-dict - "10.1.1.1":"timedate object"  format
     down_time_dict = {}
 
@@ -100,13 +114,13 @@ def main(argv):
     # Loop thru pings, passing down_ip->time dictionary thru and back
     try:
         while True:
-            down_time_dict = run_ping(ping_ip_str, down_time_dict, nmap_time)
+            down_time_dict = run_ping(ping_ip_str, down_time_dict, nmap_time, args.output)
             time.sleep(p_delay)
     except KeyboardInterrupt: #Ctrl+C to end
         print ("")
         print ("Ctrl-C pressed, exiting...")
 
-def run_ping(ip_string, down_time_dict, nmap_time):
+def run_ping(ip_string, down_time_dict, nmap_time, out_file):
     # input: ip_string,  and down-time-dict, and nmap_time (1-5)
     # output: new down-time-dict
 
@@ -131,6 +145,11 @@ def run_ping(ip_string, down_time_dict, nmap_time):
         ip_total_count = ip_total_count + 1
         #print (nm[n_ip])
         #print (n_ip + " is " + nm[n_ip].state())
+        if out_file not in ["empty"]:
+            with open(out_file, 'a', newline='') as ofile:
+                csvwrite = csv.writer(ofile)
+                csvwrite.writerow([n_ip, nm[n_ip].state()])
+
         if nm[n_ip].state() == "up":
             ip_up_count = ip_up_count + 1
             down_time_dict.pop(n_ip, None) #remove IP entry from down_ip_dict, if it was there
@@ -179,6 +198,10 @@ def run_ping(ip_string, down_time_dict, nmap_time):
 
     print ("") #final print for end of line
     print ("") #space between lines
+
+    if out_file not in ["empty"]: # If -o passed, stop after one loop
+         exit("Results written to '" + out_file + "'")
+
     return down_time_dict
 
 if __name__== "__main__":
