@@ -87,9 +87,9 @@ def main(argv):
                 pass
             else:
                 exit("Quitting!")
-            with open(args.output, 'w', newline='') as ofile:
-                writer = csv.writer(ofile)
-                writer.writerow(["ip", "status"])
+        with open(args.output, 'w', newline='') as ofile:
+            writer = csv.writer(ofile)
+            writer.writerow(["ip", "status"])
     else: args.output = "empty"
     # down-time-dict - "10.1.1.1":"timedate object"  format
     down_time_dict = {}
